@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高雄過年揪團神器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        :root { --primary: #007bff; --rush: #ffebee; --chill: #e8f5e9; --food: #fff3e0; }
+        body { font-family: "微軟正黑體", sans-serif; background: #f4f7f6; margin: 0; padding: 0; padding-bottom: 50px;}
+        
+        /* 導覽列 */
+        .nav { display: flex; background: #333; padding: 10px; position: sticky; top: 0; z-index: 100; }
+        .nav button { flex: 1; padding: 10px; background: none; border: none; color: #888; font-size: 1.1rem; cursor: pointer; }
+        .nav button.active { color: white; font-weight: bold; border-bottom: 3px solid var(--primary); }
+
+        /* 頁面切換 */
+        .page { display: none; padding: 15px; max-width: 800px; margin: 0 auto; }
+        .page.active { display: block; }
+
+        /* 問卷樣式 */
+        .quiz-card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-opt { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; background: white; text-align: left; }
+        .btn-opt:active { background: #eee; }
+
+        /* 行程拖拉樣式 */
+        .container { display: flex; flex-direction: column; gap: 15px; }
+        .pool, .schedule { background: white; padding: 15px; border-radius: 10px; border: 1px solid #ddd; }
+        .pool { border: 2px dashed #999; min-height: 100px; display: flex; flex-wrap: wrap; gap: 8px; }
+        
+        .item { padding: 8px 12px; border-radius: 5px; font-size: 0.9rem; cursor: grab; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.1); user-select: none; }
+        .item.rush { background: var(--rush); border-left: 4px solid #ef5350; }
+        .item.chill { background: var(--chill); border-left: 4px solid #66bb6a; }
+        .item.food { background: var(--food); border-left: 4px solid #ffa726; }
+        
+        .time-slot { display: flex; margin-bottom: 8px; background: #fafafa; border-radius: 8px; border: 1px solid #eee; }
+        .time-label { padding: 10px; background: #e3f2fd; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; width: 60px; justify-content: center; border-radius: 8px 0 0 8px; }
+        .slot-area { flex-grow: 1; min-height: 50px; padding: 5px; }
+        
+        /* 複製按鈕 */
+        .float-btn { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 15px 20px; border-radius: 50px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .ghost { opacity: 0.4; background: #ccc; }
+        
+        h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <button class="active" onclick="switchPage('quiz')">1. 測屬性</button>
+    <button onclick="switchPage('plan')">2. 排行程</button>
+</div>
+
+<div id="quiz" class="page active">
+    <div class="quiz-card">
+        <h3>Q1. 難得去高雄，你的體力？</h3>
+        <button class="btn-opt" onclick="addScore(1)">A. 只要腿沒斷，景點跑不完 (特種兵)</button>
+        <button class="btn-opt" onclick="addScore(-1)">B. 睡飽再出門，一天兩個點 (養生團)</button>
+    </div>
+    <div class="quiz-card">
+        <h3>Q2. 對於「走路」這件事？</h3>
+        <button class="btn-opt" onclick="addScore(1)">A. 走 20 分鐘去搭捷運沒問題</button>
+        <button class="btn-opt" onclick="addScore(-1)">B. 能坐輕軌就不走路</button>
+    </div>
+    <div class="quiz-card">
+        <h3>Q3. 景點偏好？</h3>
+        <button class="btn-opt" onclick="addScore(1)">A. 戶外看海、爬山、曬太陽</button>
+        <button class="btn-opt" onclick="addScore(-1)">B. 室內展覽、百貨公司冷氣</button>
+    </div>
+    <div style="text-align:center; margin-top:20px;">
+        <button onclick="showResult()" style="background:#333; color:white; padding:10px 30px; border:none; border-radius:5px; font-size:1.1rem;">查看結果</button>
+        <p id="result-text" style="font-weight:bold; color:red; margin-top:15px; font-size:1.2rem;"></p>
+    </div>
+</div>
+
+<div id="plan" class="page">
+    <div class="container">
+        
+        <div class="schedule">
+            <h2>待選區 (長按拖曳)</h2>
+            <div id="pool" class="pool">
+                <div class="item rush">壽山動物園</div>
+                <div class="item rush">旗津燈塔+砲台</div>
+                <div class="item rush">蓮池潭環湖</div>
+                <div class="item rush">西子灣爬樓梯</div>
+                <div class="item chill">輕軌遊夢時代</div>
+                <div class="item chill">駁二文創散步</div>
+                <div class="item chill">內惟藝術中心</div>
+                <div class="item chill">大東濕地公園</div>
+                <div class="item food">丹丹漢堡</div>
+                <div class="item food">鹽埕老店小吃</div>
+                <div class="item food">瑞豐夜市</div>
+                <div class="item" style="background:#eee">捷運/輕軌移動</div>
+            </div>
+        </div>
+
+        <div class="schedule">
+            <h2>行程表 (目標 20:00 回新營)</h2>
+            <div class="time-slot"><div class="time-label">08:00<br>10:00</div><div class="slot-area" id="t1"><div class="item" style="background:#333; color:white">火車前往高雄</div></div></div>
+            <div class="time-slot"><div class="time-label">10:00<br>12:00</div><div class="slot-area" id="t2"></div></div>
+            <div class="time-slot"><div class="time-label">12:00<br>14:00</div><div class="slot-area" id="t3"><div class="item food">午餐時間</div></div></div>
+            <div class="time-slot"><div class="time-label">14:00<br>16:00</div><div class="slot-area" id="t4"></div></div>
+            <div class="time-slot"><div class="time-label">16:00<br>18:00</div><div class="slot-area" id="t5"></div></div>
+            <div class="time-slot"><div class="time-label">18:00<br>20:00</div><div class="slot-area" id="t6"><div class="item" style="background:#333; color:white">火車返程</div></div></div>
+        </div>
+    </div>
+    
+    <button class="float-btn" onclick="exportPlan()">複製行程文字</button>
+</div>
+
+<script>
+    // 1. 頁面切換邏輯
+    function switchPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    // 2. 測驗邏輯
+    let score = 0;
+    function addScore(val) { score += val; alert("已選擇！"); }
+    function showResult() {
+        let res = score > 0 ? "你是【精實特種兵】🔥 適合多跑戶外景點！" : "你是【佛系養生團】🌿 適合室內慢遊！";
+        document.getElementById('result-text').innerText = res;
+        setTimeout(() => { if(confirm(res + "\n要去排行程嗎？")) switchPage('plan'); }, 500);
+    }
+
+    // 3. 拖拉功能 (SortableJS)
+    const config = { group: 'shared', animation: 150, delay: 100, delayOnTouchOnly: true, ghostClass: 'ghost' };
+    new Sortable(document.getElementById('pool'), config);
+    ['t1','t2','t3','t4','t5','t6'].forEach(id => {
+        new Sortable(document.getElementById(id), config);
+    });
+
+    // 4. 匯出文字功能
+    function exportPlan() {
+        let text = "【高雄過年行程草案】\n";
+        let times = ["08-10", "10-12", "12-14", "14-16", "16-18", "18-20"];
+        
+        times.forEach((t, index) => {
+            let slot = document.getElementById('t' + (index + 1));
+            let items = slot.querySelectorAll('.item');
+            let activities = [];
+            items.forEach(i => activities.push(i.innerText));
+            text += `${t}點: ${activities.length > 0 ? activities.join(' + ') : '---'}\n`;
+        });
+        
+        navigator.clipboard.writeText(text).then(() => alert("行程已複製！請貼到 Line 群組。"));
+    }
+</script>
+
+</body>
+</html>
