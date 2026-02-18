@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2/20 高雄揪團神器 (全區版)</title>
+    <title>2/20 高雄揪團 (時間可變版)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         :root { 
             --primary: #007bff; 
             --selected: #2c3e50;
-            --bg-rush: #ffebee; --bd-rush: #ef5350; /* 特種兵/戶外 */
-            --bg-chill: #e8f5e9; --bd-chill: #66bb6a; /* 養生/室內 */
-            --bg-food: #fff3e0; --bd-food: #ffa726; /* 美食 */
-            --bg-trans: #e3f2fd; --bd-trans: #2196f3; /* 交通 */
+            --bg-rush: #ffebee; --bd-rush: #ef5350;
+            --bg-chill: #e8f5e9; --bd-chill: #66bb6a;
+            --bg-food: #fff3e0; --bd-food: #ffa726;
+            --bg-trans: #e3f2fd; --bd-trans: #2196f3;
         }
         
         body { font-family: "微軟正黑體", sans-serif; background: #f4f7f6; margin: 0; padding: 0; padding-bottom: 120px; color: #333; }
@@ -23,80 +23,99 @@
         .container { max-width: 900px; margin: 0 auto; padding: 15px; }
         .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.1rem; color: #444; }
-        
-        /* 篩選按鈕 */
+
+        /* 篩選器 */
         .filter-bar { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; }
-        .filter-btn { white-space: nowrap; padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; background: white; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .filter-btn { white-space: nowrap; padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; background: white; cursor: pointer; transition: 0.2s; }
         .filter-btn.active { background: var(--selected); color: white; border-color: var(--selected); }
 
         /* 景點池 */
         .pool { 
-            border: 2px dashed #bbb; min-height: 150px; max-height: 400px; overflow-y: auto;
+            border: 2px dashed #bbb; min-height: 120px; max-height: 300px; overflow-y: auto;
             display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;
             padding: 10px; background: #fafafa; border-radius: 8px; 
         }
         
-        /* 方塊樣式 */
+        /* 方塊通用樣式 */
         .item { 
-            padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; 
+            padding: 8px 10px; border-radius: 6px; font-size: 0.9rem; 
             cursor: grab; display: inline-block; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.1); user-select: none; 
             background: white; border: 1px solid #eee; position: relative;
+            transition: height 0.2s ease, background-color 0.2s;
+            /* 預設高度 */
+            height: auto; 
+            min-height: 40px;
+            display: flex; flex-direction: column; justify-content: center;
         }
-        .item .district-tag { 
-            font-size: 0.7em; padding: 2px 4px; border-radius: 3px; 
-            background: rgba(0,0,0,0.1); margin-right: 5px; font-weight: bold;
-        }
-        .item small { display: block; font-size: 0.75em; opacity: 0.8; margin-top: 2px; }
         
-        .item.food { background: var(--bg-food); border-left: 5px solid var(--bd-food); }
-        .item.tour { background: var(--bg-rush); border-left: 5px solid var(--bd-rush); } /* 旅遊=紅色系 */
-        .item.chill { background: var(--bg-chill); border-left: 5px solid var(--bd-chill); } /* 輕鬆=綠色系 */
-        .item.trans { background: var(--bg-trans); border-left: 5px solid var(--bd-trans); font-weight: bold; width: 100%; box-sizing: border-box;}
+        .item .content-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .item .district-tag { font-size: 0.7em; padding: 2px 4px; border-radius: 3px; background: rgba(0,0,0,0.1); margin-right: 5px; font-weight: bold; }
+        .item small { display: block; font-size: 0.75em; opacity: 0.8; margin-top: 2px; }
 
-        /* 時間軸與路順提示 */
-        .time-slot-container { margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background: white; overflow: hidden; }
-        .time-slot { display: flex; min-height: 80px; }
+        /* 顏色分類 */
+        .item.food { background: var(--bg-food); border-left: 5px solid var(--bd-food); }
+        .item.tour { background: var(--bg-rush); border-left: 5px solid var(--bd-rush); }
+        .item.chill { background: var(--bg-chill); border-left: 5px solid var(--bd-chill); }
+        .item.trans { background: var(--bg-trans); border-left: 5px solid var(--bd-trans); font-weight: bold; width: 100%; }
+
+        /* 時間控制列 (只有拖入行程表後才顯示) */
+        .time-ctrl {
+            display: none; /* 預設隱藏 */
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+            font-size: 0.8rem;
+            align-items: center;
+            justify-content: space-between;
+            color: #666;
+        }
+        .time-ctrl button {
+            background: rgba(0,0,0,0.1); border: none; border-radius: 4px;
+            width: 24px; height: 24px; cursor: pointer; font-weight: bold;
+        }
+        .time-ctrl button:hover { background: rgba(0,0,0,0.2); }
+        
+        /* 當方塊在行程表中時的特殊樣式 */
+        .slot-area .item { width: 100%; box-sizing: border-box; } 
+        .slot-area .item .time-ctrl { display: flex; } /* 顯示時間控制器 */
+
+        /* 時間軸與路順 */
+        .time-slot-container { margin-bottom: 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: white; overflow: hidden; display: flex; }
         .time-label { 
             padding: 5px; background: #e3f2fd; color: #1565c0; 
             font-weight: bold; font-size: 0.85rem; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            width: 75px; flex-shrink: 0; text-align: center; border-right: 1px solid #ddd;
+            width: 70px; flex-shrink: 0; text-align: center; border-right: 1px solid #ddd;
         }
-        .slot-area { flex-grow: 1; padding: 8px; display: flex; flex-wrap: wrap; gap: 5px; align-items: flex-start; }
+        .slot-content { flex-grow: 1; display: flex; flex-direction: column; }
         
-        /* 路順 AI 提示條 */
+        .slot-area { 
+            flex-grow: 1; padding: 8px; min-height: 60px; 
+            display: flex; flex-direction: column; gap: 5px; /* 垂直排列 */
+        }
+        
         .route-hint { 
-            font-size: 0.8rem; padding: 5px 10px; background: #f5f5f5; 
-            border-top: 1px dashed #ddd; color: #666; display: flex; align-items: center; gap: 5px;
+            font-size: 0.75rem; padding: 2px 10px; background: #f9f9f9; 
+            border-top: 1px solid #eee; color: #888; text-align: right;
         }
         .hint-ok { color: #2e7d32; font-weight: bold; }
         .hint-warn { color: #c62828; font-weight: bold; }
 
         /* 底部按鈕 */
-        .action-bar { 
-            position: fixed; bottom: 0; left: 0; width: 100%; 
-            background: white; padding: 12px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); 
-            display: flex; justify-content: center; gap: 15px; z-index: 999; 
-        }
-        .btn-main { 
-            background: var(--primary); color: white; padding: 12px 25px; 
-            border-radius: 50px; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; flex: 2; 
-        }
+        .action-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 12px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: center; gap: 15px; z-index: 999; }
+        .btn-main { background: var(--primary); color: white; padding: 12px 25px; border-radius: 50px; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; flex: 2; }
         .btn-reset { background: #90a4ae; color: white; padding: 12px 20px; border-radius: 50px; border: none; cursor: pointer; flex: 1; }
 
-        /* 問卷與輸入框 */
         .input-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
         .btn-opt { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; background: white; border-radius: 8px; text-align: left; cursor: pointer; }
         .btn-opt.active { background: var(--selected); color: white; border-color: var(--selected); }
-        #result-badge { display:none; margin-top:10px; padding:10px; background:#eee; text-align:center; border-radius:5px; font-weight:bold; }
-
     </style>
 </head>
 <body>
 
 <div class="nav">
-    <h1>🚄 2/20 高雄全區攻略版</h1>
+    <h1>🚄 2/20 高雄全區攻略 (時間版)</h1>
 </div>
 
 <div class="container">
@@ -106,27 +125,28 @@
         <div class="input-group">
             <input type="text" id="username" placeholder="請輸入暱稱 (例：豪豪)">
         </div>
-        <p><strong>Q1. 體力分配？</strong></p>
-        <div id="q1">
-            <button class="btn-opt" onclick="selectOpt(this, 'q1', 1)">A. 特種兵 (景點跑不完)</button>
-            <button class="btn-opt" onclick="selectOpt(this, 'q1', -1)">B. 養生團 (慢活吹冷氣)</button>
+        <div style="display: flex; gap:10px;">
+            <div style="flex:1">
+                <p><strong>Q1. 體力?</strong></p>
+                <button class="btn-opt" onclick="selectOpt(this, 'q1', 1)">A. 特種兵</button>
+                <button class="btn-opt" onclick="selectOpt(this, 'q1', -1)">B. 養生團</button>
+            </div>
+            <div style="flex:1">
+                <p><strong>Q2. 喜好?</strong></p>
+                <button class="btn-opt" onclick="selectOpt(this, 'q2', 1)">A. 戶外</button>
+                <button class="btn-opt" onclick="selectOpt(this, 'q2', -1)">B. 室內</button>
+            </div>
         </div>
-        <p><strong>Q2. 景點偏好？</strong></p>
-        <div id="q2">
-            <button class="btn-opt" onclick="selectOpt(this, 'q2', 1)">A. 戶外看海</button>
-            <button class="btn-opt" onclick="selectOpt(this, 'q2', -1)">B. 室內逛街</button>
-        </div>
-        <div id="result-badge"></div>
     </div>
 
     <div class="card">
         <h2>2. 地圖參考</h2>
-        <iframe src="https://www.google.com/maps/d/u/0/embed?mid=1ZjcKfex88IRUfytr3WUMttoVmXFv0x0&ehbc=2E312F" style="width:100%; height:400px; border:0; border-radius:8px;"></iframe>
+        <iframe src="https://www.google.com/maps/d/u/0/embed?mid=1ZjcKfex88IRUfytr3WUMttoVmXFv0x0&ehbc=2E312F" style="width:100%; height:350px; border:0; border-radius:8px;"></iframe>
     </div>
 
     <div class="card">
-        <h2>3. 拖拉排行程 (含路順分析)</h2>
-        <p style="font-size:0.9rem; color:#666;">點選下方按鈕篩選行政區，將方塊拖入時間軸。</p>
+        <h2>3. 拖拉排行程 (可調時間長度)</h2>
+        <p style="font-size:0.9rem; color:#666;">將方塊拖入下方，並使用 +/- 調整停留時間。</p>
         
         <div class="filter-bar">
             <button class="filter-btn active" onclick="filterSpots('all')">全部</button>
@@ -134,7 +154,6 @@
             <button class="filter-btn" onclick="filterSpots('鹽埕區')">鹽埕區</button>
             <button class="filter-btn" onclick="filterSpots('鼓山區')">鼓山區</button>
             <button class="filter-btn" onclick="filterSpots('左營區')">左營區</button>
-            <button class="filter-btn" onclick="filterSpots('旗津區')">旗津區</button>
             <button class="filter-btn" onclick="filterSpots('前金區')">前金區</button>
             <button class="filter-btn" onclick="filterSpots('新興區')">新興區</button>
             <button class="filter-btn" onclick="filterSpots('前鎮區')">前鎮區</button>
@@ -148,10 +167,8 @@
     </div>
 
     <div class="card">
-        <h3>當日行程表</h3>
-        
+        <h3>當日行程表 (08:00 - 22:00)</h3>
         <div id="schedule-container"></div>
-
     </div>
 
 </div>
@@ -162,13 +179,15 @@
 </div>
 
 <script>
-    // --- 資料庫：所有景點 (依照圖片建立) ---
+    // --- 資料庫：加入客運資訊 ---
     const allSpots = [
-        // 交通
-        { name: "去:自強3000(161)", district: "交通", type: "trans", note: "09:30新營-10:18高雄" },
-        { name: "去:區快1003", district: "交通", type: "trans", note: "09:44新營-10:48新左營" },
-        { name: "回:自強3000(196)", district: "交通", type: "trans", note: "20:28新左營-21:18新營" },
-        { name: "回:自強156", district: "交通", type: "trans", note: "21:18新左營-22:17新營" },
+        // 交通 (新增客運)
+        { name: "和欣客運(去)", district: "交通", type: "trans", note: "09:32 新營-建國" },
+        { name: "和欣客運(去)", district: "交通", type: "trans", note: "09:47 麻豆-建國" },
+        { name: "火車(去):自強161", district: "交通", type: "trans", note: "09:30新營-10:18高雄" },
+        { name: "火車(去):區快1003", district: "交通", type: "trans", note: "09:44新營-10:48新左營" },
+        { name: "火車(回):自強196", district: "交通", type: "trans", note: "20:28新左營-21:18新營" },
+        { name: "火車(回):自強156", district: "交通", type: "trans", note: "21:18新左營-22:17新營" },
         { name: "捷運/輕軌移動", district: "交通", type: "trans", note: "" },
 
         // 左營區
@@ -296,9 +315,7 @@
     const pool = document.getElementById('pool');
     
     function renderPool(filter = 'all') {
-        pool.innerHTML = ''; // 清空
-        
-        // 篩選按鈕樣式切換
+        pool.innerHTML = '';
         document.querySelectorAll('.filter-btn').forEach(btn => {
             if(btn.innerText === (filter === 'all' ? '全部' : filter)) btn.classList.add('active');
             else btn.classList.remove('active');
@@ -311,128 +328,152 @@
             el.className = `item ${spot.type}`;
             el.setAttribute('data-district', spot.district);
             el.setAttribute('data-name', spot.name);
+            el.setAttribute('data-time', '60'); // 預設 60 分鐘
             
             let tag = (spot.type !== 'trans') ? `<span class="district-tag">[${spot.district.replace('區','')}]</span>` : '';
             let note = spot.note ? `<small>${spot.note}</small>` : '';
             
-            el.innerHTML = `${tag}${spot.name}${note}`;
+            // 加入時間控制區 (預設隱藏，拖入才顯示)
+            let timeCtrl = `
+                <div class="time-ctrl">
+                    <button onclick="changeTime(this, -30)">-</button>
+                    <span class="time-disp">60m</span>
+                    <button onclick="changeTime(this, 30)">+</button>
+                </div>
+            `;
+
+            el.innerHTML = `
+                <div class="content-row">${tag}${spot.name}</div>
+                ${note}
+                ${timeCtrl}
+            `;
             pool.appendChild(el);
         });
     }
 
-    // --- 2. 初始化時間軸與排序功能 ---
-    const timeSlots = [
-        { id: 't1', label: '09:30-11:00' },
-        { id: 't2', label: '11:00-13:00' },
-        { id: 't3', label: '13:00-15:00' },
-        { id: 't4', label: '15:00-17:00' },
-        { id: 't5', label: '17:00-19:00' },
-        { id: 't6', label: '19:00-22:00' },
-    ];
+    // --- 2. 調整時間 (方塊變形) ---
+    window.changeTime = function(btn, delta) {
+        let item = btn.closest('.item');
+        let current = parseInt(item.getAttribute('data-time'));
+        let newVal = current + delta;
+        
+        if (newVal < 30) newVal = 30; // 最少 30 分
+        if (newVal > 240) newVal = 240; // 最多 4 小時
+        
+        item.setAttribute('data-time', newVal);
+        item.querySelector('.time-disp').innerText = newVal + 'm';
+        
+        // 視覺高度調整 (基底 50px, 每 30 分鐘 + 30px)
+        let baseHeight = 50; 
+        if(newVal > 60) {
+            item.style.height = (baseHeight + (newVal - 60) * 0.8) + 'px';
+        } else {
+            item.style.height = 'auto';
+        }
+    }
 
+    // --- 3. 生成 1 小時區間的時間軸 ---
     const scheduleContainer = document.getElementById('schedule-container');
-    timeSlots.forEach(slot => {
+    const startHour = 8;
+    const endHour = 22;
+
+    for (let i = startHour; i < endHour; i++) {
+        let timeLabel = `${String(i).padStart(2,'0')}:00<br>|<br>${String(i+1).padStart(2,'0')}:00`;
+        let slotId = `t${i}`;
+        
         let html = `
             <div class="time-slot-container">
                 <div class="time-slot">
-                    <div class="time-label">${slot.label.replace('-', '<br>|<br>')}</div>
-                    <div class="slot-area" id="${slot.id}"></div>
+                    <div class="time-label">${timeLabel}</div>
+                    <div class="slot-content">
+                        <div class="slot-area" id="${slotId}"></div>
+                        <div class="route-hint" id="hint-${slotId}"></div>
+                    </div>
                 </div>
-                <div class="route-hint" id="hint-${slot.id}">⚪ 尚無行程</div>
             </div>
         `;
         scheduleContainer.innerHTML += html;
-    });
+    }
 
-    // 啟動 Sortable
+    // Sortable 設定
     const config = {
         group: 'shared', animation: 150, delay: 100, delayOnTouchOnly: true,
         onEnd: function (evt) {
-            checkRouteLogic(evt.to.id); // 當方塊被放下時，檢查該時間軸的路順
-            checkRouteLogic(evt.from.id); // 也要檢查來源，以防移出後變空
+            checkRouteLogic(evt.to.id);
+            checkRouteLogic(evt.from.id);
         }
     };
 
     new Sortable(pool, config);
-    timeSlots.forEach(slot => {
-        new Sortable(document.getElementById(slot.id), config);
-    });
+    // 為所有時間格套用 Sortable
+    for (let i = startHour; i < endHour; i++) {
+        new Sortable(document.getElementById(`t${i}`), config);
+    }
 
-    // --- 3. AI 路順判斷邏輯 ---
+    // --- 4. 路順判斷 ---
     function checkRouteLogic(slotId) {
-        if (!slotId.startsWith('t')) return; // 忽略 pool
-
+        if (!slotId.startsWith('t')) return;
         let slotArea = document.getElementById(slotId);
         let items = slotArea.getElementsByClassName('item');
         let hintBox = document.getElementById(`hint-${slotId}`);
         
-        if (items.length === 0) {
-            hintBox.innerHTML = "⚪ 尚無行程";
-            return;
-        }
+        if (items.length === 0) { hintBox.innerHTML = ""; return; }
 
         let districts = [];
         for(let item of items) {
             let d = item.getAttribute('data-district');
             if(d !== '交通') districts.push(d);
         }
+        let unique = [...new Set(districts)];
 
-        // 去除重複
-        let uniqueDistricts = [...new Set(districts)];
-
-        if (uniqueDistricts.length === 0) {
-            hintBox.innerHTML = "🚄 交通移動中...";
-            hintBox.className = "route-hint";
-        } else if (uniqueDistricts.length === 1) {
-            hintBox.innerHTML = `<span class="hint-ok">✅ 順路：都在 ${uniqueDistricts[0]} 活動</span>`;
-            hintBox.className = "route-hint";
+        if (unique.length > 1) {
+            hintBox.innerHTML = `<span class="hint-warn">⚠️ 跨區: ${unique.join('⇄')}</span>`;
+        } else if (unique.length === 1) {
+            hintBox.innerHTML = `<span class="hint-ok">✅ ${unique[0]}</span>`;
         } else {
-            // 簡單判斷距離 (如果區域大於2個，或者跨度大)
-            // 這裡做一個簡單的警示：只要超過1個區域就提醒確認
-            hintBox.innerHTML = `<span class="hint-warn">⚠️ 跨區移動：${uniqueDistricts.join(' ⇄ ')} (請確認交通時間)</span>`;
-            hintBox.className = "route-hint";
+            hintBox.innerHTML = "";
         }
     }
 
-    // --- 4. 問卷與報表 ---
+    // --- 5. 報表 ---
     let answers = { q1: 0, q2: 0 };
     function selectOpt(btn, group, val) {
-        let container = document.getElementById(group);
-        let btns = container.getElementsByClassName('btn-opt');
+        let btns = btn.parentNode.getElementsByClassName('btn-opt');
         for (let b of btns) b.classList.remove('active');
         btn.classList.add('active');
         answers[group] = val;
-        
-        let total = answers.q1 + answers.q2;
-        let badge = document.getElementById('result-badge');
-        let text = (total > 0) ? "🔥 屬性：精實特種兵" : "🌿 屬性：佛系養生團";
-        badge.style.display = 'block';
-        badge.innerText = text;
-        if(total > 0) { badge.style.background="#ffebee"; badge.style.color="#c62828"; }
-        else { badge.style.background="#e8f5e9"; badge.style.color="#2e7d32"; }
     }
 
     function generateReport() {
         let name = document.getElementById('username').value.trim();
-        if (!name) { alert("請先輸入暱稱！"); return; }
+        if (!name) { alert("請輸入暱稱！"); return; }
         
-        let report = `【2/20 高雄全區攻略】\n👤 ${name} 的行程\n------------------\n`;
+        let report = `【2/20 高雄行程 - ${name}】\n------------------\n`;
         
-        timeSlots.forEach(slot => {
-            let area = document.getElementById(slot.id);
+        // 遍歷所有時段
+        for (let i = startHour; i < endHour; i++) {
+            let slotId = `t${i}`;
+            let area = document.getElementById(slotId);
             let items = area.getElementsByClassName('item');
+            
             if(items.length > 0) {
+                let timeStr = `${String(i).padStart(2,'0')}:00`;
                 let acts = [];
-                for(let item of items) acts.push(item.innerText.split('\n')[0]);
-                report += `🕒 ${slot.label}: ${acts.join(' + ')}\n`;
+                for(let item of items) {
+                    let n = item.getAttribute('data-name');
+                    let t = item.getAttribute('data-time');
+                    // 如果停留時間大於 60 分鐘，在文字上也備註一下
+                    let timeNote = (t > 60) ? `(${Math.floor(t/60)}hr)` : ``;
+                    acts.push(`${n}${timeNote}`);
+                }
+                report += `🕒 ${timeStr}: ${acts.join(' + ')}\n`;
             }
-        });
+        }
         
-        report += `------------------\n地圖參考: https://bit.ly/KH-Trip-Map`;
-        navigator.clipboard.writeText(report).then(() => alert("已複製！請貼到 Line")).catch(() => alert("複製失敗"));
+        report += `------------------\n地圖: https://bit.ly/KH-Trip-Map`;
+        navigator.clipboard.writeText(report).then(() => alert("已複製！")).catch(() => alert("複製失敗"));
     }
 
-    // 初始化
     renderPool();
 </script>
 
