@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>專案管理系統 - 執行中看板</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+    .header { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid #ddd; }
+    h1 { color: #2c3e50; margin: 0; }
+    .nav-buttons a { text-decoration: none; padding: 10px 20px; margin-left: 10px; border-radius: 5px; font-weight: bold; color: white; transition: 0.3s; }
+    .btn-add { background-color: #27ae60; }
+    .btn-add:hover { background-color: #2ecc71; }
+    .btn-closed { background-color: #7f8c8d; }
+    .btn-closed:hover { background-color: #95a5a6; }
+    .table-container { max-width: 1000px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px; border-bottom: 1px solid #eee; }
+    th { background-color: #ecf0f1; color: #34495e; }
+    .loading { text-align: center; color: #e67e22; font-weight: bold; padding: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 執行中專案總覽</h1>
+  <div class="nav-buttons">
+    <a href="form.html" class="btn-add">➕ 新增專案</a>
+    <a href="closed.html" class="btn-closed">📦 已結案專案</a>
+  </div>
+</div>
+
+<div class="table-container">
+  <div id="loadingMsg" class="loading">資料載入中，請稍候... ⏳</div>
+  <table id="projectTable" style="display:none;">
+    <thead>
+      <tr id="tableHead"></tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script>
+  // 你的專屬 GAS API 網址，加上 ?action=active 參數來讀取執行中專案
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbx-v5TZahGINqu7xAryX6ZlZ54jrrk6-HDRTvQvnu7WZ0RxVhBnc85fQd1snihkCDpU/exec?action=active';
+  
+  fetch(scriptURL)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('projectTable').style.display = 'table';
+      
+      if(data.result === 'success' && data.data.length > 0) {
+        const rows = data.data;
+        // 渲染表頭 (第一列)
+        const thead = document.getElementById('tableHead');
+        rows[0].forEach(headerText => {
+          let th = document.createElement('th');
+          th.textContent = headerText;
+          thead.appendChild(th);
+        });
+        
+        // 渲染資料內容 (第二列開始)
+        const tbody = document.getElementById('tableBody');
+        for(let i = 1; i < rows.length; i++) {
+          let tr = document.createElement('tr');
+          rows[i].forEach(cellText => {
+            let td = document.createElement('td');
+            td.textContent = cellText;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
+      } else {
+        document.getElementById('loadingMsg').style.display = 'block';
+        document.getElementById('loadingMsg').textContent = '目前沒有執行中的專案。';
+      }
+    })
+    .catch(error => {
+      document.getElementById('loadingMsg').textContent = '連線失敗，請重新整理頁面。';
+    });
+</script>
+
+</body>
+</html>
