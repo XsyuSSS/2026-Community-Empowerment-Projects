@@ -38,7 +38,7 @@
     <input type="text" id="mainUnit" name="mainUnit" placeholder="例如：永齡基金會">
 
     <label for="partnerUnit">🤝 合作單位</label>
-    <input type="text" id="partnerUnit" name="partnerUnit" placeholder="例如：社區發展協會">
+    <input type="text" id="partnerUnit" name="partnerUnit" placeholder="例如：區公所、社區發展協會">
 
     <label for="deadline">📅 預計完成期限</label>
     <input type="date" id="deadline" name="deadline" required>
@@ -46,13 +46,17 @@
     <label for="budget">💰 經費來源</label>
     <select id="budget" name="budget" required>
       <option value="" disabled selected>請選擇經費來源</option>
-      <option value="協會支出">協會支出</option>
-      <option value="企業/社會贊助">企業 / 社會贊助</option>
+      <option value="協會">協會</option>
+      <option value="協會培力計畫">協會培力計畫</option>
+      <option value="協會合作計劃">協會合作計畫</option>
+      <option value="協會自籌">協會自籌</option>
+      <option value="企業社">企業社</option>
+      <option value="企業本次活動經費">企業本次活動經費</option>
       <option value="政府補助">政府補助</option>
-      <option value="零預算/自籌">零預算 / 自籌</option>
+      <option value="無">無</option>
     </select>
 
-    <label for="description">📝 專案說明 (痛點與目標)</label>
+    <label for="description">📝 專案說明</label>
     <textarea id="description" name="description" rows="4" placeholder="請簡述這個專案要解決什麼問題？"></textarea>
 
     <button type="submit" id="submitBtn">🚀 送出專案並自動建立編號</button>
