@@ -4,81 +4,168 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>專案管理系統</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-    .header { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid #ddd; }
+    .header { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid #ddd; }
     h1 { color: #2c3e50; margin: 0; }
-    .nav-buttons a { text-decoration: none; padding: 10px 20px; margin-left: 10px; border-radius: 5px; font-weight: bold; color: white; transition: 0.3s; }
+    .nav-buttons a { text-decoration: none; padding: 10px 20px; margin-left: 10px; border-radius: 5px; font-weight: bold; color: white; }
     .btn-add { background-color: #27ae60; }
-    .btn-add:hover { background-color: #2ecc71; }
     .btn-closed { background-color: #7f8c8d; }
-    .btn-closed:hover { background-color: #95a5a6; }
-    .table-container { max-width: 1000px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 12px; border-bottom: 1px solid #eee; }
-    th { background-color: #ecf0f1; color: #34495e; }
+    .project-card { max-width: 1100px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .project-title { font-size: 20px; color: #2980b9; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+    .task-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px; }
+    .task-table th, .task-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+    .task-table th { background-color: #ecf0f1; }
+    .gantt-container { width: 100%; height: auto; min-height: 150px; margin-top: 15px; overflow-x: auto; }
+    .add-task-form { display: flex; gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 5px; flex-wrap: wrap; }
+    .add-task-form input { flex: 1; min-width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    .add-task-form button { background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .loading { text-align: center; color: #e67e22; font-weight: bold; padding: 20px; }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>📊專案管理系統</h1>
+  <h1>📊 專案管理系統</h1>
   <div class="nav-buttons">
     <a href="form.html" class="btn-add">➕ 新增專案</a>
-    <a href="closed.html" class="btn-closed">📦 已結案專案</a>
+    <a href="closed.html" class="btn-closed">📦 已結案</a>
   </div>
 </div>
 
-<div class="table-container">
-  <div id="loadingMsg" class="loading">資料載入中，請稍候... ⏳</div>
-  <table id="projectTable" style="display:none;">
-    <thead>
-      <tr id="tableHead"></tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-</div>
+<div id="loadingMsg" class="loading">資料與甘特圖載入中，請稍候... ⏳</div>
+<div id="projectsContainer"></div>
 
 <script>
-  // 你的專屬 GAS API 網址，加上 ?action=active 參數來讀取執行中專案
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbx-v5TZahGINqu7xAryX6ZlZ54jrrk6-HDRTvQvnu7WZ0RxVhBnc85fQd1snihkCDpU/exec?action=active';
+  // 替換成你的最新 GAS 網址
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbx-v5TZahGINqu7xAryX6ZlZ54jrrk6-HDRTvQvnu7WZ0RxVhBnc85fQd1snihkCDpU/exec';
   
-  fetch(scriptURL)
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById('loadingMsg').style.display = 'none';
-      document.getElementById('projectTable').style.display = 'table';
-      
-      if(data.result === 'success' && data.data.length > 0) {
-        const rows = data.data;
-        // 渲染表頭 (第一列)
-        const thead = document.getElementById('tableHead');
-        rows[0].forEach(headerText => {
-          let th = document.createElement('th');
-          th.textContent = headerText;
-          thead.appendChild(th);
-        });
-        
-        // 渲染資料內容 (第二列開始)
-        const tbody = document.getElementById('tableBody');
-        for(let i = 1; i < rows.length; i++) {
-          let tr = document.createElement('tr');
-          rows[i].forEach(cellText => {
-            let td = document.createElement('td');
-            td.textContent = cellText;
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
+  google.charts.load('current', {'packages':['gantt']});
+  google.charts.setOnLoadCallback(fetchData);
+
+  function fetchData() {
+    fetch(scriptURL + '?action=active')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('loadingMsg').style.display = 'none';
+        if(data.result === 'success' && data.data.length > 1) {
+          renderProjects(data.data);
+        } else {
+          document.getElementById('loadingMsg').style.display = 'block';
+          document.getElementById('loadingMsg').textContent = '目前沒有執行中的專案。';
         }
-      } else {
-        document.getElementById('loadingMsg').style.display = 'block';
-        document.getElementById('loadingMsg').textContent = '目前沒有執行中的專案。';
+      });
+  }
+
+  function renderProjects(rows) {
+    const container = document.getElementById('projectsContainer');
+    // 資料結構：分組
+    // A=0:編號, C=2:專案名稱, H=7:完成期限
+    // I=8:工作項目, J=9:工作說明, K=10:負責人, L=11:起始日, M=12:預計完成日, N=13:狀態
+    const projects = {};
+    
+    for(let i = 1; i < rows.length; i++) {
+      let r = rows[i];
+      let pId = r[0];
+      if(!pId) continue;
+      
+      if(!projects[pId]) {
+        projects[pId] = { name: r[2], deadline: r[7], tasks: [] };
       }
-    })
-    .catch(error => {
-      document.getElementById('loadingMsg').textContent = '連線失敗，請重新整理頁面。';
+      // 如果該列有工作項目，就加進任務清單
+      if(r[8]) {
+        projects[pId].tasks.push({ id: `task_${i}`, name: r[8], desc: r[9], owner: r[10], start: r[11], end: r[12], status: r[13] });
+      }
+    }
+
+    // 渲染每個專案的卡片
+    for (const [pId, pData] of Object.entries(projects)) {
+      let card = document.createElement('div');
+      card.className = 'project-card';
+      
+      // 標題與任務表格
+      let html = `<div class="project-title">🏷️ [${pId}] ${pData.name} (總期限: ${pData.deadline})</div>`;
+      html += `<table class="task-table"><tr><th>工作項目</th><th>說明</th><th>負責人</th><th>起始日</th><th>預計完成日</th><th>狀態</th></tr>`;
+      
+      pData.tasks.forEach(t => {
+        html += `<tr><td>${t.name}</td><td>${t.desc}</td><td>${t.owner}</td><td>${t.start}</td><td>${t.end}</td><td>${t.status}</td></tr>`;
+      });
+      html += `</table>`;
+
+      // 甘特圖容器
+      html += `<div id="gantt_${pId}" class="gantt-container"></div>`;
+
+      // 新增任務小表單
+      html += `
+        <form class="add-task-form" onsubmit="submitTask(event, '${pId}')">
+          <input type="hidden" name="action" value="addTask">
+          <input type="hidden" name="projectId" value="${pId}">
+          <input type="text" name="taskName" placeholder="工作項目 (必填)" required>
+          <input type="text" name="taskDesc" placeholder="說明">
+          <input type="text" name="taskOwner" placeholder="負責人" required>
+          <input type="date" name="taskStart" required title="起始日">
+          <input type="date" name="taskEnd" required title="預計完成日">
+          <button type="submit">➕ 新增任務</button>
+        </form>
+      `;
+      card.innerHTML = html;
+      container.appendChild(card);
+
+      // 畫甘特圖
+      drawGantt(pId, pData.tasks);
+    }
+  }
+
+  function drawGantt(pId, tasks) {
+    if(tasks.length === 0) return;
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task ID');
+    data.addColumn('string', 'Task Name');
+    data.addColumn('string', 'Resource');
+    data.addColumn('date', 'Start Date');
+    data.addColumn('date', 'End Date');
+    data.addColumn('number', 'Duration');
+    data.addColumn('number', 'Percent Complete');
+    data.addColumn('string', 'Dependencies');
+
+    let validTasks = 0;
+    tasks.forEach(t => {
+      // 簡易日期解析 (支援 YYYY-MM-DD 或 YYYY/MM/DD)
+      let start = new Date(t.start.split(' ')[0].replace(/\//g, '-'));
+      let end = new Date(t.end.split(' ')[0].replace(/\//g, '-'));
+      
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        data.addRow([ t.id, t.name, t.owner, start, end, null, 0, null ]);
+        validTasks++;
+      }
     });
+
+    if(validTasks > 0) {
+      var chart = new google.visualization.Gantt(document.getElementById(`gantt_${pId}`));
+      // 甘特圖高度自適應
+      chart.draw(data, { height: (validTasks * 40) + 40 }); 
+    } else {
+      document.getElementById(`gantt_${pId}`).innerHTML = "<span style='color:gray; font-size:12px;'>⚠️ 日期格式不完整，無法產生甘特圖。</span>";
+    }
+  }
+
+  // 送出新增子任務
+  function submitTask(e, pId) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button');
+    btn.textContent = '新增中...';
+    btn.disabled = true;
+
+    fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+      .then(r => r.json())
+      .then(d => {
+        if(d.result === 'success') {
+          location.reload(); // 成功後直接重整畫面刷新甘特圖
+        } else alert('錯誤:' + d.error);
+      }).catch(() => { alert('連線失敗'); btn.textContent = '➕ 新增任務'; btn.disabled = false; });
+  }
 </script>
 
 </body>
