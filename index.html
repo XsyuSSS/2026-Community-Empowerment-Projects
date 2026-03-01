@@ -12,13 +12,19 @@
     .nav-buttons a { text-decoration: none; padding: 10px 20px; margin-left: 10px; border-radius: 5px; font-weight: bold; color: white; }
     .btn-add { background-color: #27ae60; }
     .btn-closed { background-color: #7f8c8d; }
+    
     .project-card { max-width: 1100px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    .project-title { font-size: 20px; color: #2980b9; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+    .project-title { font-size: 20px; color: #2980b9; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-weight: bold; }
+    
+    /* 新增的專案說明區塊設計 */
+    .project-desc { background-color: #f8f9fa; border-left: 4px solid #f39c12; padding: 12px 15px; margin-bottom: 15px; font-size: 15px; color: #555; line-height: 1.6; border-radius: 0 4px 4px 0; }
+    
     .task-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px; }
-    .task-table th, .task-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
-    .task-table th { background-color: #ecf0f1; }
+    .task-table th, .task-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    .task-table th { background-color: #ecf0f1; color: #2c3e50; }
     .gantt-container { width: 100%; height: auto; min-height: 150px; margin-top: 15px; overflow-x: auto; }
-    .add-task-form { display: flex; gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 5px; flex-wrap: wrap; }
+    
+    .add-task-form { display: flex; gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 5px; flex-wrap: wrap; margin-top: 20px; border: 1px dashed #ccc; }
     .add-task-form input { flex: 1; min-width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
     .add-task-form button { background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .loading { text-align: center; color: #e67e22; font-weight: bold; padding: 20px; }
@@ -27,7 +33,7 @@
 <body>
 
 <div class="header">
-  <h1>📊 專案管理系統</h1>
+  <h1>📊專案管理系統</h1>
   <div class="nav-buttons">
     <a href="form.html" class="btn-add">➕ 新增專案</a>
     <a href="closed.html" class="btn-closed">📦 已結案</a>
@@ -60,22 +66,28 @@
 
   function renderProjects(rows) {
     const container = document.getElementById('projectsContainer');
-    // 資料結構：分組
-    // A=0:編號, C=2:專案名稱, H=7:完成期限
-    // I=8:工作項目, J=9:工作說明, K=10:負責人, L=11:起始日, M=12:預計完成日, N=13:狀態
     const projects = {};
     
+    // 從第2列開始讀取 (避開表頭)
     for(let i = 1; i < rows.length; i++) {
       let r = rows[i];
-      let pId = r[0];
+      let pId = r[0]; // A欄: 專案編號
       if(!pId) continue;
       
+      // 建立專案母資料 (加入 r[5] 專案說明)
       if(!projects[pId]) {
-        projects[pId] = { name: r[2], deadline: r[7], tasks: [] };
+        projects[pId] = { 
+          name: r[2],       // C欄: 專案名稱
+          desc: r[5],       // F欄: 專案說明
+          deadline: r[7],   // H欄: 完成期限
+          tasks: [] 
+        };
       }
-      // 如果該列有工作項目，就加進任務清單
-      if(r[8]) {
-        projects[pId].tasks.push({ id: `task_${i}`, name: r[8], desc: r[9], owner: r[10], start: r[11], end: r[12], status: r[13] });
+      // 如果 I 欄(工作項目)有值，才推入任務清單
+      if(r[8] && r[8].trim() !== "") {
+        projects[pId].tasks.push({ 
+          id: `task_${i}`, name: r[8], desc: r[9], owner: r[10], start: r[11], end: r[12], status: r[13] 
+        });
       }
     }
 
@@ -84,25 +96,38 @@
       let card = document.createElement('div');
       card.className = 'project-card';
       
-      // 標題與任務表格
+      // 1. 專案標題
       let html = `<div class="project-title">🏷️ [${pId}] ${pData.name} (總期限: ${pData.deadline})</div>`;
+      
+      // 2. 專案說明區塊 (如果有填寫說明才顯示)
+      if (pData.desc && pData.desc.trim() !== "") {
+        // 將換行符號轉為 HTML 的 <br> 以保留排版
+        let formattedDesc = pData.desc.replace(/\n/g, '<br>');
+        html += `<div class="project-desc"><strong>📝 專案痛點與說明：</strong><br>${formattedDesc}</div>`;
+      }
+      
+      // 3. 任務表格
       html += `<table class="task-table"><tr><th>工作項目</th><th>說明</th><th>負責人</th><th>起始日</th><th>預計完成日</th><th>狀態</th></tr>`;
       
-      pData.tasks.forEach(t => {
-        html += `<tr><td>${t.name}</td><td>${t.desc}</td><td>${t.owner}</td><td>${t.start}</td><td>${t.end}</td><td>${t.status}</td></tr>`;
-      });
+      if (pData.tasks.length > 0) {
+        pData.tasks.forEach(t => {
+          html += `<tr><td>${t.name}</td><td>${t.desc}</td><td>${t.owner}</td><td>${t.start}</td><td>${t.end}</td><td>${t.status}</td></tr>`;
+        });
+      } else {
+        html += `<tr><td colspan="6" style="text-align:center; color:#95a5a6;">目前尚無工作項目，請在下方新增。</td></tr>`;
+      }
       html += `</table>`;
 
-      // 甘特圖容器
+      // 4. 甘特圖容器
       html += `<div id="gantt_${pId}" class="gantt-container"></div>`;
 
-      // 新增任務小表單
+      // 5. 新增任務小表單
       html += `
         <form class="add-task-form" onsubmit="submitTask(event, '${pId}')">
           <input type="hidden" name="action" value="addTask">
           <input type="hidden" name="projectId" value="${pId}">
           <input type="text" name="taskName" placeholder="工作項目 (必填)" required>
-          <input type="text" name="taskDesc" placeholder="說明">
+          <input type="text" name="taskDesc" placeholder="任務說明">
           <input type="text" name="taskOwner" placeholder="負責人" required>
           <input type="date" name="taskStart" required title="起始日">
           <input type="date" name="taskEnd" required title="預計完成日">
@@ -112,13 +137,14 @@
       card.innerHTML = html;
       container.appendChild(card);
 
-      // 畫甘特圖
-      drawGantt(pId, pData.tasks);
+      // 6. 畫甘特圖
+      if (pData.tasks.length > 0) {
+        drawGantt(pId, pData.tasks);
+      }
     }
   }
 
   function drawGantt(pId, tasks) {
-    if(tasks.length === 0) return;
     var data = new google.visualization.DataTable();
     data.addColumn('string', 'Task ID');
     data.addColumn('string', 'Task Name');
@@ -131,22 +157,23 @@
 
     let validTasks = 0;
     tasks.forEach(t => {
-      // 簡易日期解析 (支援 YYYY-MM-DD 或 YYYY/MM/DD)
-      let start = new Date(t.start.split(' ')[0].replace(/\//g, '-'));
-      let end = new Date(t.end.split(' ')[0].replace(/\//g, '-'));
-      
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        data.addRow([ t.id, t.name, t.owner, start, end, null, 0, null ]);
-        validTasks++;
+      // 確保日期不為空
+      if(t.start && t.end) {
+        let start = new Date(t.start.split(' ')[0].replace(/\//g, '-'));
+        let end = new Date(t.end.split(' ')[0].replace(/\//g, '-'));
+        
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          data.addRow([ t.id, t.name, t.owner, start, end, null, 0, null ]);
+          validTasks++;
+        }
       }
     });
 
     if(validTasks > 0) {
       var chart = new google.visualization.Gantt(document.getElementById(`gantt_${pId}`));
-      // 甘特圖高度自適應
       chart.draw(data, { height: (validTasks * 40) + 40 }); 
     } else {
-      document.getElementById(`gantt_${pId}`).innerHTML = "<span style='color:gray; font-size:12px;'>⚠️ 日期格式不完整，無法產生甘特圖。</span>";
+      document.getElementById(`gantt_${pId}`).innerHTML = "<span style='color:gray; font-size:12px;'>⚠️ 日期格式不完整或缺少任務，無法產生甘特圖。</span>";
     }
   }
 
@@ -162,7 +189,7 @@
       .then(r => r.json())
       .then(d => {
         if(d.result === 'success') {
-          location.reload(); // 成功後直接重整畫面刷新甘特圖
+          location.reload(); 
         } else alert('錯誤:' + d.error);
       }).catch(() => { alert('連線失敗'); btn.textContent = '➕ 新增任務'; btn.disabled = false; });
   }
